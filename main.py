@@ -8,11 +8,81 @@ import pygame
 pygame.init()
 size = width, height = 1920, 1080
 screen = pygame.display.set_mode(size)
+fps = 120
+
+
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
+def start_screen():
+    intro_text = ["Fortuna Cycle", "",
+                  "Управление",
+                  "Передвигайтесь на W, A, S, D",
+                  "Стреляйте на ЛКМ",
+                  "Выход - Esc",
+                  "Нажмите любую кнопку, чтобы начать"]
+
+    fon = load_image('start_bg.jpeg')
+    screen.blit(fon, (0, 0))
+    font = pygame.font.SysFont('Arial', 36)
+    text_coord = 100
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 1000
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                return  # начинаем игру
+        pygame.display.flip()
+        clock.tick(fps)
+
+
+def game_over(time):
+    end_text = ["Игра окончена", "",
+                f"Набранные очки:{scorelbl.score}",
+                f"Секунд прожито: {time}",
+                "Нажмите Esc"]
+
+    fon = pygame.Surface((500, 600))
+    fon.fill((10, 10, 10))
+    screen.blit(fon, (1000, 200))
+    font = pygame.font.SysFont('Arial', 36)
+    text_coord = 250
+    for line in end_text:
+        string_rendered = font.render(line, 1, pygame.Color('white'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 1010
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN:
+                # Используем только Esc, чтобы предотвратить случайное нажатие
+                if event.key == pygame.K_ESCAPE:
+                    return  # завершаем сессию
+        pygame.display.flip()
+        clock.tick(fps)
 
 
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
-    # если файл не существует
+    # если файл не существуетw
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
@@ -49,7 +119,7 @@ class Character(pygame.sprite.Sprite):
         self.image = load_image('cycle_character.png')
         # размеры
         self.rect = self.image.get_rect()
-        self.rect.x = 0
+        self.rect.x = 900
         self.rect.y = 0
         # характеристики
         self.vx = self.vy = 5
@@ -65,7 +135,7 @@ class Character(pygame.sprite.Sprite):
         hits = pygame.sprite.spritecollide(self, enemies, False)
         if hits and not self.invinsible:
             self.hp = self.hp - len(hits) * 20
-            # после получения удара получает период неуязвимости
+            # после получения удара получает период неуязвимости и запускает таймер события, снимающего неуязвимость
             self.invinsible = True
             pygame.time.set_timer(RECOVER_AFTER_HIT, 500, True)
 
@@ -207,22 +277,24 @@ class Scorelabel(pygame.sprite.Sprite):
 
 if __name__ == '__main__':
     pygame.display.set_caption('Fortuna Cycle')
+
     screen = pygame.display.set_mode(size)
-    fps = 120
     clock = pygame.time.Clock()
     RECOVER_AFTER_HIT = pygame.USEREVENT + 1
     RELOAD = pygame.USEREVENT + 2
     STRIDER_SPAWN = pygame.USEREVENT + 3
+    start_screen()
+    start_clock = pygame.time.Clock()
     pygame.time.set_timer(STRIDER_SPAWN, 5000)
 
     all_sprites = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
     enemies = pygame.sprite.Group()
-    cursor = Cursor(all_sprites)
     character = Character(all_sprites)
     healthbar = Healthbar(all_sprites)
     scorelbl = Scorelabel(all_sprites)
     Creature(1500, 900, all_sprites, enemies)
+    cursor = Cursor(all_sprites)
 
     running = True
     while running:
@@ -278,4 +350,5 @@ if __name__ == '__main__':
         # завершение
         pygame.display.flip()
         clock.tick(fps)
+    game_over(start_clock.tick() // 1000)
     pygame.quit()
